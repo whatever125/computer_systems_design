@@ -1,0 +1,31 @@
+BasedOnStyle: LLVM
+
+# Main settings
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+
+# Maximum horizontal length of the line
+ColumnLimit: 80
+
+# Braces config
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: false
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeElse: true
+  IndentBraces: false
+
+# Other handy options
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: false
+SpaceBeforeParens: ControlStatements
+PointerAlignment: Left
+
+# Don't sort the includes, ever
+IncludeBlocks: Preserve
+SortIncludes: Never

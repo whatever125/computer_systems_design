@@ -1,0 +1,100 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Format main",
+      "type": "shell",
+      "command": "clang-format -i ./Core/Src/main.c ./Core/Src/gpio.c ./Core/Src/led_driver.c ./Core/Src/button_driver.c ./Core/Inc/main.h ./Core/Inc/gpio.h ./Core/Inc/led_driver.h ./Core/Inc/button_driver.h",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Format current file",
+      "type": "shell",
+      "command": "clang-format",
+      "args": ["-i", "${file}"],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Lint main",
+      "type": "shell",
+      "command": "find",
+      "args": [
+        "./main",
+        "-name",
+        "*.c",
+        "-o",
+        "-name",
+        "*.h",
+        "|",
+        "xargs",
+        "cppcheck",
+        "--enable=all",
+        "--inconclusive",
+        "--quiet",
+        "--suppress=missingIncludeSystem",
+        "--suppress=missingInclude",
+        "--suppress=unmatchedSuppression:*",
+        "--suppress=checkersReport",
+        "--inline-suppr",
+        "--suppressions-list=cppcheck-supressions.txt",
+        "--template={file}:{line}:{column}: {severity}: {message}"
+      ],
+      "problemMatcher": {
+        "owner": "cppcheck",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Lint current file",
+      "type": "shell",
+      "command": "cppcheck",
+      "args": [
+        "--enable=all",
+        "--inconclusive",
+        "--quiet",
+        "--suppress=missingIncludeSystem",
+        "--suppress=missingInclude",
+        "--suppress=unmatchedSuppression:*",
+        "--suppress=checkersReport",
+        "--template={file}:{line}:{column}: {severity}: {message}",
+        "${file}"
+      ],
+      "problemMatcher": {
+        "owner": "cppcheck",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
