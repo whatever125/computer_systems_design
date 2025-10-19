@@ -1,7 +1,5 @@
-#include "main.h"
+#include "custom_gpio.h"
 #include "led_driver.h"
-#include "gpio.h"
-#include "stm32f427xx.h"
 
 static GPIO_TypeDef* led_ports[LED_COUNT] = {
     Green_LED_GPIO_Port,
@@ -21,8 +19,8 @@ static uint16_t led_pins[LED_COUNT] = {
  */
 void led_set_state(led_id_t led_id, led_state_t state) {
   if (led_id < LED_COUNT) {
-    HAL_GPIO_WritePin(led_ports[led_id], led_pins[led_id],
-                      (state == LED_ON) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    custom_gpio_write_pin(led_ports[led_id], led_pins[led_id],
+                          (state == LED_ON) ? GPIO_PIN_SET : GPIO_PIN_RESET);
   }
 }
 
@@ -32,6 +30,6 @@ void led_set_state(led_id_t led_id, led_state_t state) {
  */
 void led_toggle(led_id_t led_id) {
   if (led_id < LED_COUNT) {
-    HAL_GPIO_TogglePin(led_ports[led_id], led_pins[led_id]);
+    custom_gpio_toggle_pin(led_ports[led_id], led_pins[led_id]);
   }
 }

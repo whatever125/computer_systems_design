@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "stdbool.h"
 #include "stdint.h"
+#include "custom_gpio.h"
 #include "led_driver.h"
 #include "button_driver.h"
 /* USER CODE END Includes */
@@ -97,6 +98,7 @@ int main(void) {
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
+  custom_gpio_init();
   update_counter_leds();
   button_driver_init();
   /* USER CODE END 2 */
