@@ -57,14 +57,6 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define Button_Pin GPIO_PIN_15
-#define Button_GPIO_Port GPIOC
-#define Green_LED_Pin GPIO_PIN_13
-#define Green_LED_GPIO_Port GPIOD
-#define Red_LED_Pin GPIO_PIN_14
-#define Red_LED_GPIO_Port GPIOD
-#define Yellow_LED_Pin GPIO_PIN_15
-#define Yellow_LED_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 #define DEBOUNCE_TIME_MS 50
