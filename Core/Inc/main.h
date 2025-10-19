@@ -67,12 +67,13 @@ void Error_Handler(void);
 #define Yellow_LED_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
-#define DEBOUNCE_TIME_MS 50          /* Время дебаунсинга, мс */
-#define SHORT_PRESS_THRESHOLD_MS 500 /* Порог короткого нажатия, мс */
-#define LONG_PRESS_THRESHOLD_MS 500  /* Порог длинного нажатия, мс */
-#define ANIMATION_CYCLE_MS 200       /* Цикл мигания обоими LED, мс */
-#define GREEN_BLINK_CYCLE_MS 400     /* Цикл мигания зеленым, мс */
-#define OVERFLOW_ANIMATION_CYCLES 5 /* Кол-во циклов мигания обоими */
+#define DEBOUNCE_TIME_MS 50
+#define LONG_PRESS_THRESHOLD_MS 500
+#define ANIMATION_HALF_CYCLE_MS 200
+#define ANIMATION_CYCLE_MS (ANIMATION_HALF_CYCLE_MS * 2)
+#define GREEN_BLINK_HALF_CYCLE_MS (ANIMATION_HALF_CYCLE_MS * 2)
+#define GREEN_BLINK_CYCLE_MS (GREEN_BLINK_HALF_CYCLE_MS * 2)
+#define OVERFLOW_ANIMATION_CYCLES 5
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

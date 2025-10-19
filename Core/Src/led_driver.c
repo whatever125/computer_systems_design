@@ -1,27 +1,23 @@
+#include "main.h"
 #include "led_driver.h"
 #include "gpio.h"
 #include "stm32f427xx.h"
 
 static GPIO_TypeDef* led_ports[LED_COUNT] = {
     Green_LED_GPIO_Port,
+    Red_LED_GPIO_Port,
     Yellow_LED_GPIO_Port,
 };
 static uint16_t led_pins[LED_COUNT] = {
     Green_LED_Pin,
+    Red_LED_Pin,
     Yellow_LED_Pin,
 };
 
 /**
- * @brief Инициализация драйвера LED (настройка GPIO уже в MX_GPIO_Init)
- */
-void led_driver_init(void) {
-  /* Ничего дополнительного, GPIO уже настроены */
-}
-
-/**
- * @brief Установить состояние LED
- * @param led_id: ID LED
- * @param state: LED_ON/OFF
+ * Set LED state
+ * @param led_id: LED ID
+ * @param state: LED ON/OFF
  */
 void led_set_state(led_id_t led_id, led_state_t state) {
   if (led_id < LED_COUNT) {
@@ -31,7 +27,8 @@ void led_set_state(led_id_t led_id, led_state_t state) {
 }
 
 /**
- * @brief Переключить состояние LED
+ * Toggle LED state
+ * @param led_id: LED ID
  */
 void led_toggle(led_id_t led_id) {
   if (led_id < LED_COUNT) {
