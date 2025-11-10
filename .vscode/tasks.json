@@ -4,7 +4,7 @@
     {
       "label": "Format main",
       "type": "shell",
-      "command": "clang-format -i ./Core/Src/main.c ./Core/Src/gpio.c ./Core/Src/led_driver.c ./Core/Src/button_driver.c ./Core/Inc/main.h ./Core/Inc/gpio.h ./Core/Inc/led_driver.h ./Core/Inc/button_driver.h",
+      "command": "clang-format -i ./Core/Src/main.c ./Core/Inc/main.h ./Core/Src/Custom/**/*.c ./Core/Inc/Custom/**/*.h",
       "problemMatcher": [],
       "group": {
         "kind": "build",
