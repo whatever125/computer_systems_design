@@ -16,7 +16,7 @@ void custom_gpio_init(void) {
   // init button
   GPIO_InitStruct.Pin = Button_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   custom_gpio_init_pin(Button_GPIO_Port, GPIO_InitStruct.Pin, &GPIO_InitStruct);
 
   // init LEDs
