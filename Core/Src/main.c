@@ -24,8 +24,8 @@
 /* USER CODE BEGIN Includes */
 #include "stdbool.h"
 #include "stdint.h"
-#include "led_driver.h"
-#include "button_driver.h"
+#include "Custom/Drivers/led_driver.h"
+#include "Custom/Drivers/button_driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,21 +45,13 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-static uint8_t counter_value = 0;
-static uint8_t overflow_count = 0;
-static press_type_t current_press = NO_PRESS;
-static bool animation_active = false;
-static uint32_t animation_start_tick = 0;
-static uint8_t animation_step = 0;
-static uint8_t green_blinks_remaining = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-static void update_counter_leds(void);
-static void trigger_overflow_animation(void);
-static void update_animation(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -97,8 +89,7 @@ int main(void) {
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-  update_counter_leds();
-  button_driver_init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -107,33 +98,6 @@ int main(void) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    button_update_state();
-    current_press = button_get_press_type();
-
-    if (current_press == SHORT_PRESS) {
-      counter_value = (counter_value + 1) % 4;
-      if (counter_value == 0) {
-        overflow_count++;
-        trigger_overflow_animation();
-      }
-      update_counter_leds();
-
-    } else if (current_press == LONG_PRESS) {
-      if (counter_value == 0) {
-        counter_value = 3;
-        if (overflow_count > 0) {
-          overflow_count--;
-          trigger_overflow_animation();
-        }
-      } else {
-        counter_value--;
-      }
-      update_counter_leds();
-    }
-
-    if (animation_active) {
-      update_animation();
-    }
   }
   /* USER CODE END 3 */
 }
@@ -188,91 +152,6 @@ void SystemClock_Config(void) {
 
 /* USER CODE BEGIN 4 */
 
-/**
- * Update LEDs to reflect current counter value
- */
-static void update_counter_leds(void) {
-  led_set_state(GREEN_LED, (counter_value & 0x1) ? LED_ON : LED_OFF);
-  led_set_state(YELLOW_LED, (counter_value & 0x2) ? LED_ON : LED_OFF);
-}
-
-/**
- * Start overflow animation
- */
-static void trigger_overflow_animation(void) {
-  // turn off LEDs before animation
-  led_set_state(GREEN_LED, LED_OFF);
-  led_set_state(YELLOW_LED, LED_OFF);
-  // prepare state
-  animation_active = true;
-  animation_start_tick = HAL_GetTick();
-  animation_step = 0;
-  green_blinks_remaining = overflow_count;
-}
-
-/**
- * Update animation state
- */
-static void update_animation(void) {
-  uint32_t current_tick = HAL_GetTick();
-  uint32_t elapsed_time = current_tick - animation_start_tick;
-
-  if (animation_step == 0) {
-    // step 0: initial delay
-    if (elapsed_time >= ANIMATION_HALF_CYCLE_MS) {
-      // stop initial delay, move to step 1
-      animation_step = 1;
-      animation_start_tick = current_tick;
-      elapsed_time = 0;
-    } else {
-      // turn off LEDs during initial delay
-      led_set_state(GREEN_LED, LED_OFF);
-      led_set_state(YELLOW_LED, LED_OFF);
-      return;
-    }
-  }
-
-  if (animation_step == 1) {
-    // step 1: blinking both LEDs
-    if (elapsed_time >= (OVERFLOW_ANIMATION_CYCLES * ANIMATION_CYCLE_MS)) {
-      // move to step 2
-      animation_step = 2;
-      animation_start_tick = current_tick;
-      elapsed_time = 0;
-    } else {
-      // blink both LEDs
-      bool led_on =
-          (elapsed_time % ANIMATION_CYCLE_MS) < ANIMATION_HALF_CYCLE_MS;
-      led_set_state(GREEN_LED, led_on ? LED_ON : LED_OFF);
-      led_set_state(YELLOW_LED, led_on ? LED_ON : LED_OFF);
-      return;
-    }
-  }
-
-  if (animation_step == 2) {
-    // step 2: blink green LED
-    if (green_blinks_remaining == 0) {
-      // animation finished
-      animation_active = false;
-      update_counter_leds();
-      return;
-    }
-
-    if (elapsed_time >= GREEN_BLINK_CYCLE_MS) {
-      // one green blink cycle finished
-      green_blinks_remaining--;
-      animation_start_tick = current_tick;
-      elapsed_time = 0;
-    } else {
-      // blink green LED
-      bool led_on =
-          (elapsed_time % GREEN_BLINK_CYCLE_MS) < GREEN_BLINK_HALF_CYCLE_MS;
-      led_set_state(GREEN_LED, led_on ? LED_ON : LED_OFF);
-      led_set_state(YELLOW_LED, LED_OFF);
-      return;
-    }
-  }
-}
 /* USER CODE END 4 */
 
 /**

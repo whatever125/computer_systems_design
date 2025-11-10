@@ -1,18 +1,10 @@
 #include "main.h"
-#include "led_driver.h"
+#include "Custom/Drivers/led_driver.h"
 #include "gpio.h"
 #include "stm32f427xx.h"
 
-static GPIO_TypeDef* led_ports[LED_COUNT] = {
-    Green_LED_GPIO_Port,
-    Red_LED_GPIO_Port,
-    Yellow_LED_GPIO_Port,
-};
-static uint16_t led_pins[LED_COUNT] = {
-    Green_LED_Pin,
-    Red_LED_Pin,
-    Yellow_LED_Pin,
-};
+static GPIO_TypeDef* led_ports[LED_COUNT] = {};
+static uint16_t led_pins[LED_COUNT] = {};
 
 /**
  * Set LED state
