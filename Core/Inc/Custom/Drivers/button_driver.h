@@ -3,6 +3,9 @@
 
 #include "main.h"
 
+#define DEBOUNCE_TIME_MS 50
+#define LONG_PRESS_THRESHOLD_MS 500
+
 typedef enum {
   NO_PRESS,
   SHORT_PRESS,

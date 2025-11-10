@@ -1,4 +1,4 @@
-#include "button_driver.h"
+#include "Custom/Drivers/button_driver.h"
 #include "gpio.h"
 #include "main.h"
 
@@ -9,6 +9,9 @@
 
 #define BUTTON_PRESSED GPIO_PIN_RESET
 #define BUTTON_RELEASED GPIO_PIN_SET
+
+#define BUTTON_GPIO_PORT 0
+#define BUTTON_PIN 0
 
 static GPIO_PinState last_button_state = false;
 static GPIO_PinState current_state = false;
@@ -22,7 +25,7 @@ static uint32_t press_start_tick = 0;
  */
 void button_driver_init(void) {
   // init states
-  last_button_state = HAL_GPIO_ReadPin(Button_GPIO_Port, Button_Pin);
+  last_button_state = HAL_GPIO_ReadPin(BUTTON_GPIO_PORT, BUTTON_PIN);
   current_state = last_button_state;
   last_state_change_tick = HAL_GetTick();
 }
@@ -33,7 +36,7 @@ void button_driver_init(void) {
 void button_update_state(void) {
   // update state
   uint32_t current_tick = HAL_GetTick();
-  current_state = HAL_GPIO_ReadPin(Button_GPIO_Port, Button_Pin);
+  current_state = HAL_GPIO_ReadPin(BUTTON_GPIO_PORT, BUTTON_PIN);
 
   if (current_state != last_button_state &&
       (current_tick - last_state_change_tick) >= DEBOUNCE_TIME_MS) {
