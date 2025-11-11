@@ -3,8 +3,12 @@
 #include "gpio.h"
 #include "stm32f427xx.h"
 
-static GPIO_TypeDef* led_ports[LED_COUNT] = {};
-static uint16_t led_pins[LED_COUNT] = {};
+static GPIO_TypeDef* led_ports[LED_COUNT] = {
+    Red_LED_GPIO_Port,
+};
+static uint16_t led_pins[LED_COUNT] = {
+  Red_LED_Pin,
+};
 
 /**
  * Set LED state

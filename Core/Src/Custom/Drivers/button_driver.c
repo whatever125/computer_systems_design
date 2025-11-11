@@ -10,8 +10,8 @@
 #define BUTTON_PRESSED GPIO_PIN_RESET
 #define BUTTON_RELEASED GPIO_PIN_SET
 
-#define BUTTON_GPIO_PORT 0
-#define BUTTON_PIN 0
+#define BUTTON_GPIO_PORT Button_GPIO_Port
+#define BUTTON_PIN Button_Pin
 
 static GPIO_PinState last_button_state = false;
 static GPIO_PinState current_state = false;

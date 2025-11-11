@@ -2,7 +2,7 @@
 #define __LED_DRIVER_H
 
 typedef enum {
-  // ...
+  RED_LED,
   LED_COUNT,
 } led_id_t;
 
