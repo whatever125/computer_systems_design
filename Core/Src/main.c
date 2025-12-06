@@ -27,6 +27,7 @@
 #include "stdint.h"
 #include "Custom/Drivers/led_driver.h"
 #include "Custom/Drivers/button_driver.h"
+#include "Custom/Drivers/uart_driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -93,6 +94,7 @@ int main(void)
   MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
   button_driver_init();
+  uart_driver_init(UART_POLLING);
   /* USER CODE END 2 */
 
   /* Infinite loop */
