@@ -5,9 +5,11 @@
 
 static GPIO_TypeDef* led_ports[LED_COUNT] = {
     Red_LED_GPIO_Port,
+    Yellow_LED_GPIO_Port,
 };
 static uint16_t led_pins[LED_COUNT] = {
-  Red_LED_Pin,
+    Red_LED_Pin,
+    Yellow_LED_Pin,
 };
 
 /**

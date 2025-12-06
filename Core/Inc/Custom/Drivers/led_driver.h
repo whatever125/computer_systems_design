@@ -3,6 +3,7 @@
 
 typedef enum {
   RED_LED,
+  YELLOW_LED,
   LED_COUNT,
 } led_id_t;
 
