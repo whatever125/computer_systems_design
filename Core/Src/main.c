@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -34,23 +35,17 @@
 #include "Custom/Drivers/sound_driver.h"
 #include "Custom/Drivers/melody_driver.h"
 #include "Custom/Drivers/melody_parser.h"
+#include "Custom/Drivers/keyboard_driver.h"
+#include "Custom/Drivers/mode_switcher.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum {
-  MODE_IDLE,
-  MODE_PLAYING,
-  MODE_EDIT_MENU,
-  MODE_EDIT_INPUT,
-} app_mode_t;
-
 typedef struct {
-  app_mode_t mode;
+  bool edit_mode;
   char input_buffer[128];
   uint8_t input_index;
 } app_state_t;
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -72,10 +67,11 @@ static app_state_t app_state = {0};
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-static void process_command(char cmd);
+static void process_key(uint8_t key_code);
 static void send_status_message(void);
 static void enter_edit_mode(void);
 static void process_input_buffer(void);
+static void play_melody(uint8_t melody_index);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -114,15 +110,16 @@ int main(void) {
   MX_GPIO_Init();
   MX_USART6_UART_Init();
   MX_TIM1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   button_driver_init();
   uart_driver_init(UART_POLLING);
   sound_driver_init();
   melody_driver_init();
+  keyboard_init();
+  mode_switcher_init();
 
-  uart_send_string("\r\nMusical Box Ready\r\n");
-  uart_send_string(
-      "Commands: 1-4 = play melody, 5 = play custom, Enter = edit\r\n");
+  uart_send_string("\r\nMusical Box with Keyboard Ready\r\n");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -131,31 +128,41 @@ int main(void) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    mode_switcher_update();
     melody_update();
-    uint8_t received_char;
-    if (uart_rx_blocking(&received_char)) {
-      if (app_state.mode == MODE_EDIT_INPUT) {
-        // Input string
+
+    if (keyboard_has_event()) {
+      uint8_t key = keyboard_get_pressed_key();
+
+      if (get_current_mode() == MODE_TEST) {
+        // Test mode: just print key codes
+        char msg[32];
+        snprintf(msg, sizeof(msg), "Key pressed: %d\r\n", key);
+        uart_send_string(msg);
+      } else {
+        // Application mode
+        process_key(key);
+      }
+    }
+
+    if (app_state.edit_mode) {
+      uint8_t received_char;
+      if (uart_rx_blocking(&received_char)) {
         if (received_char == '\r' || received_char == '\n') {
-          // Input end
           app_state.input_buffer[app_state.input_index] = '\0';
           uart_send_string("\r\n");
           process_input_buffer();
-          app_state.mode = MODE_IDLE;
+          app_state.edit_mode = false;
           send_status_message();
         } else if (received_char == 8 || received_char == 127) {
-          // Backspace
           if (app_state.input_index > 0) {
             app_state.input_index--;
             uart_send_string("\b \b");
           }
         } else if (app_state.input_index < sizeof(app_state.input_buffer) - 1) {
-          // Add symbol
           app_state.input_buffer[app_state.input_index++] = received_char;
           uart_tx_blocking(received_char);
         }
-      } else {
-        process_command(received_char);
       }
     }
   }
@@ -211,73 +218,54 @@ void SystemClock_Config(void) {
 }
 
 /* USER CODE BEGIN 4 */
-static void process_command(char cmd) {
+static void process_key(uint8_t key_code) {
   char message[64];
 
-  switch (cmd) {
-  case '1':
-  case '2':
-  case '3':
-  case '4': {
-    int melody_index = cmd - '1';
-    if (melody_index < MAX_STANDARD_MELODIES) {
-      melody_play(&standard_melodies[melody_index]);
-      app_state.mode = MODE_PLAYING;
-      snprintf(message, sizeof(message), "\r\nPlaying melody %d: %s\r\n",
-               melody_index + 1, standard_melodies[melody_index].name);
-      uart_send_string(message);
-    }
+  switch (key_code) {
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+    play_melody(key_code - 1);
     break;
-  }
 
-  case '5':
+  case 5:
+    // Custom melody
     if (user_melody.note_count > 0) {
       melody_play(&user_melody);
-      app_state.mode = MODE_PLAYING;
-      uart_send_string("\r\nPlaying custom melody\r\n");
+      snprintf(message, sizeof(message), "\r\nPlaying custom melody\r\n");
+      uart_send_string(message);
     } else {
       uart_send_string("\r\nNo custom melody defined\r\n");
     }
     break;
 
-  case '\r':
-  case '\n':
+  case 6:
+    // Enter edit mode
     enter_edit_mode();
     break;
 
   default:
-    snprintf(message, sizeof(message), "\r\nUnknown command: %c (0x%02X)\r\n",
-             isprint(cmd) ? cmd : '?', cmd);
+    snprintf(message, sizeof(message), "\r\nKey %d has no function\r\n",
+             key_code);
     uart_send_string(message);
-    send_status_message();
     break;
+  }
+}
+
+static void play_melody(uint8_t melody_index) {
+  if (melody_index < MAX_STANDARD_MELODIES) {
+    melody_play(&standard_melodies[melody_index]);
+    char message[64];
+    snprintf(message, sizeof(message), "\r\nPlaying melody %d: %s\r\n",
+             melody_index + 1, standard_melodies[melody_index].name);
+    uart_send_string(message);
   }
 }
 
 static void send_status_message(void) {
   char message[128];
-  const char* mode_str;
-
-  switch (app_state.mode) {
-  case MODE_IDLE:
-    mode_str = "IDLE";
-    break;
-  case MODE_PLAYING:
-    mode_str = "PLAYING";
-    break;
-  case MODE_EDIT_MENU:
-    mode_str = "EDIT MENU";
-    break;
-  case MODE_EDIT_INPUT:
-    mode_str = "EDIT INPUT";
-    break;
-  default:
-    mode_str = "UNKNOWN";
-    break;
-  }
-
-  snprintf(message, sizeof(message),
-           "\r\nStatus: Mode=%s, Custom notes=%d\r\n> ", mode_str,
+  snprintf(message, sizeof(message), "\r\nStatus: Custom notes=%d\r\n> ",
            user_melody.note_count);
   uart_send_string(message);
 }
@@ -287,8 +275,8 @@ static void enter_edit_mode(void) {
   uart_send_string("Format: C4:200;D4:200;N:100;E4:400;\r\n");
   uart_send_string("Notes: C,D,E,F,G,A,B + octave (0-8)\r\n");
   uart_send_string("N = pause, :duration_ms\r\n");
-  uart_send_string("Enter melody string (end with Enter):\r\n> ");
-  app_state.mode = MODE_EDIT_INPUT;
+  uart_send_string("Enter melody via UART (end with Enter):\r\n> ");
+  app_state.edit_mode = true;
   app_state.input_index = 0;
 }
 
