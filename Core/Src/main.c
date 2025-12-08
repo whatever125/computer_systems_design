@@ -28,6 +28,7 @@
 #include "stdbool.h"
 #include "stdint.h"
 #include "stdio.h"
+#include "string.h"
 #include "Custom/Drivers/led_driver.h"
 #include "Custom/Drivers/button_driver.h"
 #include "Custom/Drivers/uart_driver.h"
@@ -117,12 +118,23 @@ int main(void) {
   /* USER CODE BEGIN 2 */
   button_driver_init();
   uart_driver_init(UART_POLLING);
+  uart_send_string("\r\n\r\n\
+▓█████▄  ███▄    █  ▄▄▄▄   \r\n\
+▒██▀ ██▌ ██ ▀█   █ ▓█████▄ \r\n\
+░██   █▌▓██  ▀█ ██▒▒██▒ ▄██\r\n\
+░▓█▄   ▌▓██▒  ▐▌██▒▒██░█▀  \r\n\
+░▒████▓ ▒██░   ▓██░░▓█  ▀█▓\r\n\
+ ▒▒▓  ▒ ░ ▒░   ▒ ▒ ░▒▓███▀▒\r\n\
+ ░ ▒  ▒ ░ ░░   ░ ▒░▒░▒   ░ \r\n\
+ ░ ░  ░    ░   ░ ░  ░    ░ \r\n\
+   ░             ░  ░      \r\n\
+ ░                       ░ \r\n\r\n");
   sound_driver_init();
   melody_driver_init();
 
   uart_send_string("\r\nMusical Box Ready\r\n");
-  uart_send_string(
-      "Commands: 1-4 = play melody, 5 = play custom, Enter = edit\r\n");
+  uart_send_string("Commands:\r\n- 1-4 = play melody\r\n- 5 = play custom\r\n- "
+                   "Enter = edit\r\n- Esc = exit edit\r\n");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -147,7 +159,48 @@ int main(void) {
           // Backspace
           if (app_state.input_index > 0) {
             app_state.input_index--;
-            uart_send_string("\b \b");
+            for (int i = app_state.input_index;
+                 i < strlen(app_state.input_buffer); i++) {
+              app_state.input_buffer[i] = app_state.input_buffer[i + 1];
+            }
+            uart_send_string("\b");
+            uart_send_string(&app_state.input_buffer[app_state.input_index]);
+            uart_send_string(" ");
+            int chars_to_move =
+                strlen(&app_state.input_buffer[app_state.input_index]) + 1;
+            for (int i = 0; i < chars_to_move; i++) {
+              uart_send_string("\b");
+            }
+          }
+        } else if (received_char == 0x1B) {
+          if (uart_rx_blocking(&received_char)) {
+            if (received_char == '[') {
+              if (uart_rx_blocking(&received_char)) {
+                switch (received_char) {
+                case 'D':
+                  if (app_state.input_index > 0) {
+                    app_state.input_index--;
+                    uart_send_string("\x1B[D");
+                  }
+                  break;
+                case 'C':
+                  if (app_state.input_index < strlen(app_state.input_buffer)) {
+                    app_state.input_index++;
+                    uart_send_string("\x1B[C");
+                  }
+                  break;
+                }
+              } else {
+                uart_send_string(
+                    "\r\nEdit cancelled. Keep previous melody.\r\n");
+                app_state.mode = MODE_IDLE;
+                send_status_message();
+              }
+            }
+          } else {
+            uart_send_string("\r\nEdit cancelled. Keep previous melody.\r\n");
+            app_state.mode = MODE_IDLE;
+            send_status_message();
           }
         } else if (app_state.input_index < sizeof(app_state.input_buffer) - 1) {
           // Add symbol
@@ -246,38 +299,13 @@ static void process_command(char cmd) {
     break;
 
   default:
-    snprintf(message, sizeof(message), "\r\nUnknown command: %c (0x%02X)\r\n",
-             isprint(cmd) ? cmd : '?', cmd);
-    uart_send_string(message);
-    send_status_message();
     break;
   }
 }
 
 static void send_status_message(void) {
   char message[128];
-  const char* mode_str;
-
-  switch (app_state.mode) {
-  case MODE_IDLE:
-    mode_str = "IDLE";
-    break;
-  case MODE_PLAYING:
-    mode_str = "PLAYING";
-    break;
-  case MODE_EDIT_MENU:
-    mode_str = "EDIT MENU";
-    break;
-  case MODE_EDIT_INPUT:
-    mode_str = "EDIT INPUT";
-    break;
-  default:
-    mode_str = "UNKNOWN";
-    break;
-  }
-
-  snprintf(message, sizeof(message),
-           "\r\nStatus: Mode=%s, Custom notes=%d\r\n> ", mode_str,
+  snprintf(message, sizeof(message), "\r\nStatus: Custom notes=%d\r\n",
            user_melody.note_count);
   uart_send_string(message);
 }
@@ -287,7 +315,8 @@ static void enter_edit_mode(void) {
   uart_send_string("Format: C4:200;D4:200;N:100;E4:400;\r\n");
   uart_send_string("Notes: C,D,E,F,G,A,B + octave (0-8)\r\n");
   uart_send_string("N = pause, :duration_ms\r\n");
-  uart_send_string("Enter melody string (end with Enter):\r\n> ");
+  uart_send_string(
+      "Enter melody string (end with Enter, exit with Esc):\r\n> ");
   app_state.mode = MODE_EDIT_INPUT;
   app_state.input_index = 0;
 }
