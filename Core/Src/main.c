@@ -29,6 +29,7 @@
 #include "stdbool.h"
 #include "stdint.h"
 #include "stdio.h"
+#include "string.h"
 #include "Custom/Drivers/led_driver.h"
 #include "Custom/Drivers/button_driver.h"
 #include "Custom/Drivers/uart_driver.h"
@@ -114,6 +115,17 @@ int main(void) {
   /* USER CODE BEGIN 2 */
   button_driver_init();
   uart_driver_init(UART_POLLING);
+  uart_send_string("\r\n\r\n\
+▓█████▄  ███▄    █  ▄▄▄▄   \r\n\
+▒██▀ ██▌ ██ ▀█   █ ▓█████▄ \r\n\
+░██   █▌▓██  ▀█ ██▒▒██▒ ▄██\r\n\
+░▓█▄   ▌▓██▒  ▐▌██▒▒██░█▀  \r\n\
+░▒████▓ ▒██░   ▓██░░▓█  ▀█▓\r\n\
+ ▒▒▓  ▒ ░ ▒░   ▒ ▒ ░▒▓███▀▒\r\n\
+ ░ ▒  ▒ ░ ░░   ░ ▒░▒░▒   ░ \r\n\
+ ░ ░  ░    ░   ░ ░  ░    ░ \r\n\
+   ░             ░  ░      \r\n\
+ ░                       ░ \r\n\r\n");
   sound_driver_init();
   melody_driver_init();
   keyboard_init();
@@ -157,7 +169,48 @@ int main(void) {
         } else if (received_char == 8 || received_char == 127) {
           if (app_state.input_index > 0) {
             app_state.input_index--;
-            uart_send_string("\b \b");
+            for (int i = app_state.input_index;
+                 i < strlen(app_state.input_buffer); i++) {
+              app_state.input_buffer[i] = app_state.input_buffer[i + 1];
+            }
+            uart_send_string("\b");
+            uart_send_string(&app_state.input_buffer[app_state.input_index]);
+            uart_send_string(" ");
+            int chars_to_move =
+                strlen(&app_state.input_buffer[app_state.input_index]) + 1;
+            for (int i = 0; i < chars_to_move; i++) {
+              uart_send_string("\b");
+            }
+          }
+        } else if (received_char == 0x1B) {
+          if (uart_rx_blocking(&received_char)) {
+            if (received_char == '[') {
+              if (uart_rx_blocking(&received_char)) {
+                switch (received_char) {
+                case 'D':
+                  if (app_state.input_index > 0) {
+                    app_state.input_index--;
+                    uart_send_string("\x1B[D");
+                  }
+                  break;
+                case 'C':
+                  if (app_state.input_index < strlen(app_state.input_buffer)) {
+                    app_state.input_index++;
+                    uart_send_string("\x1B[C");
+                  }
+                  break;
+                }
+              } else {
+                uart_send_string(
+                    "\r\nEdit cancelled. Keep previous melody.\r\n");
+                app_state.edit_mode = false;
+                send_status_message();
+              }
+            }
+          } else {
+            uart_send_string("\r\nEdit cancelled. Keep previous melody.\r\n");
+            app_state.edit_mode = false;
+            send_status_message();
           }
         } else if (app_state.input_index < sizeof(app_state.input_buffer) - 1) {
           app_state.input_buffer[app_state.input_index++] = received_char;
@@ -246,9 +299,6 @@ static void process_key(uint8_t key_code) {
     break;
 
   default:
-    snprintf(message, sizeof(message), "\r\nKey %d has no function\r\n",
-             key_code);
-    uart_send_string(message);
     break;
   }
 }
@@ -265,7 +315,7 @@ static void play_melody(uint8_t melody_index) {
 
 static void send_status_message(void) {
   char message[128];
-  snprintf(message, sizeof(message), "\r\nStatus: Custom notes=%d\r\n> ",
+  snprintf(message, sizeof(message), "\r\nStatus: Custom notes=%d\r\n",
            user_melody.note_count);
   uart_send_string(message);
 }
@@ -275,7 +325,8 @@ static void enter_edit_mode(void) {
   uart_send_string("Format: C4:200;D4:200;N:100;E4:400;\r\n");
   uart_send_string("Notes: C,D,E,F,G,A,B + octave (0-8)\r\n");
   uart_send_string("N = pause, :duration_ms\r\n");
-  uart_send_string("Enter melody via UART (end with Enter):\r\n> ");
+  uart_send_string(
+      "Enter melody via UART (end with Enter, exit with Esc):\r\n> ");
   app_state.edit_mode = true;
   app_state.input_index = 0;
 }

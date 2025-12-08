@@ -41,9 +41,6 @@ bool parse_melody_string(const char* str, melody_t* melody) {
 
   char* token = strtok(buffer, ";");
   while (token != NULL && melody->note_count < MAX_MELODY_LENGTH) {
-    while (*token == ' ')
-      token++;
-
     if (*token == '\0') {
       token = strtok(NULL, ";");
       continue;
@@ -56,7 +53,7 @@ bool parse_melody_string(const char* str, melody_t* melody) {
       char note = *token;
       token++;
 
-      if (!isdigit(*token)) {
+      if (!isdigit((unsigned char)*token)) {
         return false;
       }
 
