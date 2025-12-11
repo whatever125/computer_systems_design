@@ -1,4 +1,5 @@
 #include "usart.h"
+#include "stm32f427xx.h"
 #include "Custom/Drivers/uart_driver.h"
 
 #define BUF_SIZE 128

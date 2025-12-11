@@ -140,10 +140,11 @@ int main(void) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    keyboard_update();
     mode_switcher_update();
     melody_update();
 
-    if (keyboard_has_event()) {
+    if (keyboard_key_pressed()) {
       uint8_t key = keyboard_get_pressed_key();
 
       if (get_current_mode() == MODE_TEST) {

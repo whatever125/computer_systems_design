@@ -1,89 +1,54 @@
-#include "Custom/Drivers/keyboard_driver.h"
-#include "i2c.h"
 #include "main.h"
 #include "stdbool.h"
 #include "stdint.h"
+#include "Custom/Drivers/internal_keyboard_driver.h"
+#include "Custom/Drivers/keyboard_driver.h"
 
-#define KEYBOARD_I2C_ADDR 0xE2
-#define KEY_PRESSED_THRESHOLD 5
-#define KEY_RELEASED_THRESHOLD 2
+#define DEBOUNCE_TIME_MS 20
 
-static const uint8_t rows[4] = {0x01, 0x02, 0x04, 0x08};
-static const uint8_t col_masks[3] = {0x10, 0x20, 0x40};
-
-static uint8_t key_states[12] = {0};
-static uint8_t pressed_keys[12] = {0};
-static uint8_t prev_pressed[12] = {0};
-static uint8_t key_codes[12] = {0};
+static int8_t prev_raw_key_state;
+static int8_t key_state;
+static int8_t pressed_key;
+static uint32_t last_change_time;
+static bool key_event;
 
 void keyboard_init(void) {
-  for (uint8_t i = 0; i < 12; i++) {
-    key_codes[i] = i + 1;
-  }
-  uint8_t config = 0x70;
-  HAL_I2C_Mem_Write(&hi2c1, KEYBOARD_I2C_ADDR, 0x03, 1, &config, 1,
-                    HAL_MAX_DELAY);
+  prev_raw_key_state = -1;
+  key_state = -1;
+  pressed_key = -1;
+  last_change_time = 0;
+  key_event = false;
 }
 
-uint8_t scan_keyboard(void) {
-  uint8_t result = 0;
+void keyboard_update(void) {
+  int8_t raw_key_state = getKeyPressed();
 
-  for (uint8_t row_idx = 0; row_idx < 4; row_idx++) {
-    uint8_t row_config = rows[row_idx];
-    HAL_I2C_Mem_Write(&hi2c1, KEYBOARD_I2C_ADDR, 0x03, 1, &row_config, 1,
-                      HAL_MAX_DELAY);
+  if (raw_key_state != prev_raw_key_state) {
+    last_change_time = HAL_GetTick();
+    prev_raw_key_state = raw_key_state;
+  }
 
-    uint8_t column_data = 0;
-    HAL_I2C_Mem_Read(&hi2c1, KEYBOARD_I2C_ADDR, 0x00, 1, &column_data, 1,
-                     HAL_MAX_DELAY);
-
-    for (uint8_t col_idx = 0; col_idx < 3; col_idx++) {
-      uint8_t key_index = row_idx * 3 + col_idx;
-
-      if (!(column_data & col_masks[col_idx])) {
-        if (key_states[key_index] < KEY_PRESSED_THRESHOLD) {
-          key_states[key_index]++;
-        }
-      } else {
-        if (key_states[key_index] > 0) {
-          key_states[key_index]--;
-        }
-      }
-
-      if (key_states[key_index] >= KEY_PRESSED_THRESHOLD) {
-        pressed_keys[key_index] = 1;
-      } else if (key_states[key_index] <= KEY_RELEASED_THRESHOLD) {
-        pressed_keys[key_index] = 0;
+  if ((HAL_GetTick() - last_change_time) >= DEBOUNCE_TIME_MS) {
+    if (raw_key_state != key_state) {
+      key_state = raw_key_state;
+      if (key_state >= 0 && pressed_key == -1) {
+        pressed_key = key_state;
+        key_event = true;
+      } else if (key_state == -1) {
+        pressed_key = -1;
       }
     }
   }
-
-  uint8_t default_config = 0x70;
-  HAL_I2C_Mem_Write(&hi2c1, KEYBOARD_I2C_ADDR, 0x03, 1, &default_config, 1,
-                    HAL_MAX_DELAY);
-
-  return result;
 }
 
-bool keyboard_has_event(void) {
-  scan_keyboard();
-  for (uint8_t i = 0; i < 12; i++) {
-    if (pressed_keys[i] && !prev_pressed[i]) {
-      prev_pressed[i] = 1;
-      return true;
-    } else if (!pressed_keys[i] && prev_pressed[i]) {
-      prev_pressed[i] = 0;
-    }
+bool keyboard_key_pressed(void) {
+  if (key_event) {
+    key_event = false;
+    return true;
   }
   return false;
 }
 
 uint8_t keyboard_get_pressed_key(void) {
-  for (uint8_t i = 0; i < 12; i++) {
-    if (pressed_keys[i] && !prev_pressed[i]) {
-      prev_pressed[i] = 1;
-      return key_codes[i];
-    }
-  }
-  return 0;
+  return (uint8_t)pressed_key;
 }

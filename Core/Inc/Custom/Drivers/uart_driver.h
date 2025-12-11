@@ -1,6 +1,7 @@
 #ifndef __UART_DRIVER_H
 #define __UART_DRIVER_H
 
+#include "usart.h"
 #include "stdbool.h"
 #include "stdint.h"
 
